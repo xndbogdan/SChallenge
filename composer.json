@@ -24,7 +24,8 @@
         "laravel-zero/framework": "^6.0",
         "nunomaduro/laravel-console-menu": "^2.1",
         "zendframework/zend-text": "^2.7",
-        "ext-mysql": "*"
+        "ext-mysql": "*",
+        "ext-json": "*"
     },
     "require-dev": {
         "fzaninotto/faker": "^1.4",

@@ -18,7 +18,6 @@ class Tab extends Model implements BrowserInterface
 
     protected $client;
     protected $cookieJar;
-
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
@@ -44,28 +43,50 @@ class Tab extends Model implements BrowserInterface
             ]
         ];
         $url_info = parse_url($url);
-        $this->client = new Client(['base_uri' => $url_info['host'], 'exceptions' => false]);
-        $response = $this->client->request(HTTPRequest::TYPE_GET,$url_info['path'],$options);
+        $urlDest = $url_info['host'];
+        if(isset($url_info['path'])) {
+            $urlDest.=$url_info['path'];
+        }
+        $cookie = Cookie::where('domain',$url_info['host'])->get()->first();
+        if($cookie){
+            $this->cookieJar = unserialize($cookie->content);
+        } else {
+            $this->cookieJar = new CookieJar();
+            $cookie = new Cookie();
+            $cookie->domain = $url_info['host'];
+        }
+        $this->client = new Client(['base_uri' => $url_info['host'], 'exceptions' => false, 'cookies' => $this->cookieJar]);
+        $response = $this->client->post($urlDest, $options);
+        $headers = '';
+        foreach ($response->getHeaders() as $k=>$v){
+            $headers.="$k:$v[0]\n";
+        }
         try {
             $httpRequest = new HTTPRequest();
             $httpRequest->back_id = $this->request_id;
             $httpRequest->front_id = null;
             $httpRequest->tab_id = $this->id;
-            $httpRequest->request_method = HTTPRequest::TYPE_GET;
+            $httpRequest->request_method = HTTPRequest::TYPE_POST;
             $httpRequest->url = $url;
-            $httpRequest->parameters = null;
+            $httpRequest->parameters = json_encode($params);
             $httpRequest->status_code = $response->getStatusCode();
-            $httpRequest->response_header = $response->getHeaders();
-            $httpRequest->response_body = $response->getBody();
+            $httpRequest->response_header = utf8_encode($headers);
+            $httpRequest->response_body = utf8_encode($response->getBody());
             $httpRequest->save();
             $oldRequest = HTTPRequest::find($this->request_id);
+            $this->request_id = $httpRequest->id;
             if($oldRequest){
                 $oldRequest->front_id = $httpRequest->id;
+                $oldRequest->save();
             }
-            $oldRequest->save();
+            $this->save();
+            $cookie->content = serialize($this->cookieJar);
+            $cookie->updated_at = date('Y-m-d H:i:s');
+            $cookie->save();
         }
         catch(\Exception $ex){
-            Log::error($ex->getTrace()[0]);
+            echo ('#'.$ex->getLine().'- ['.$ex->getFile().']_'.$ex->getMessage());
+            die();
         }
         return $httpRequest;
     }
@@ -73,8 +94,23 @@ class Tab extends Model implements BrowserInterface
     public function accessUrl(UriInterface $url): PageInterface
     {
         $url_info = parse_url($url);
-        $this->client = new Client(['base_uri' => $url_info['host'], 'exceptions' => false]);
-        $response = $this->client->request(HTTPRequest::TYPE_GET, isset($url_info['path'])?$url_info['path']:'');
+        $urlDest = $url_info['host'];
+        if(isset($url_info['path'])) {
+            $urlDest.=$url_info['path'];
+        }
+        $cookie = Cookie::where('domain',$url_info['host'])->get()->first();
+        if(!$cookie)
+            $cookie = Cookie::where('domain',str_replace('www.','',$url_info['host']))->get()->first();
+        if($cookie){
+            $this->cookieJar = unserialize($cookie->content);
+        } else {
+            $this->cookieJar = new CookieJar();
+            $cookie = new Cookie();
+            $cookie->domain = $url_info['host'];
+        }
+
+        $this->client = new Client(['base_uri' => $url_info['host'], 'exceptions' => false, 'cookies' => $this->cookieJar]);
+        $response = $this->client->request(HTTPRequest::TYPE_GET, $urlDest);
         $headers = '';
         foreach ($response->getHeaders() as $k=>$v){
             $headers.="$k:$v[0]\n";
@@ -98,6 +134,9 @@ class Tab extends Model implements BrowserInterface
                 $oldRequest->save();
             }
             $this->save();
+            $cookie->content = serialize($this->cookieJar);
+            $cookie->updated_at = date('Y-m-d H:i:s');
+            $cookie->save();
         }
         catch(\Exception $ex){
             echo ('#'.$ex->getLine().'- ['.$ex->getFile().']_'.$ex->getMessage());
