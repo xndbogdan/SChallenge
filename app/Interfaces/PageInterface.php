@@ -15,8 +15,4 @@ interface PageInterface
      */
     public function getUrl(): UriInterface;
 
-    /**
-     * @return StreamInterface
-     */
-    public function getContent(): StreamInterface;
 }

@@ -3,6 +3,7 @@
 namespace App\Interfaces;
 
 use GuzzleHttp\Cookie\CookieJarInterface;
+use phpDocumentor\Reflection\Types\Boolean;
 use Psr\Http\Message\UriInterface;
 
 /**
@@ -29,19 +30,13 @@ interface BrowserInterface
      * @return PageInterface
      */
     public function getCurrentPage(): PageInterface;
+    /**
+     * @return bool
+     */
+    public function navigateBack(): Boolean;
 
     /**
-     * @return CookieJarInterface
+     * @return bool
      */
-    public function getCookies(): CookieJarInterface;
-
-    /**
-     * @return void
-     */
-    public function navigateBack(): void;
-
-    /**
-     * @return void
-     */
-    public function navigateForward(): void;
+    public function navigateForward(): Boolean;
 }

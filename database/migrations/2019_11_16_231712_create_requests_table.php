@@ -15,8 +15,8 @@ class CreateRequestsTable extends Migration
     {
         Schema::create('requests', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->unsignedBigInteger('back_id');
-            $table->unsignedBigInteger('front_id');
+            $table->unsignedBigInteger('back_id')->nullable();
+            $table->unsignedBigInteger('front_id')->nullable();
             $table->unsignedBigInteger('tab_id');
             $table->foreign('tab_id')->references('id')->on('tabs');
             $table->string('request_method',8);
