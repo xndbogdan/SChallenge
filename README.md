@@ -21,3 +21,6 @@
 
 *This will open the cli interface. Everything else is self-explanatory*
 
+## Lastly
+You can run the browser unit testing using 
+ * ./vendor/bin/phpunit *
